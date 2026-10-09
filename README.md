@@ -2,7 +2,8 @@
 
 A responsive React application that lists the countries of the world, lets you search and filter them, and shows detailed information for each one. It is my solution to the [REST Countries API with color theme switcher](https://www.frontendmentor.io/) challenge on Frontend Mentor.
 
-![Screenshot of the application](./screenshot.png)
+![Light mode](./public/light-mode.png)
+![Dark mode](./public/dark-mode.png)
 
 ## Table of contents
 
