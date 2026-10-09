@@ -33,7 +33,7 @@ A responsive React application that lists the countries of the world, lets you s
 ## Links
 
 - Solution URL: [GitHub repo](https://github.com/Ismaellerakotoson/countries-app.git)
-- Live Site URL: [Live demo](https://ismaellerakotoson.github.io/countries-app/)
+- Live Site URL: [Live demo](https://countries-app-73ls.vercel.app/)
 
 ## Built with
 
@@ -55,8 +55,8 @@ A responsive React application that lists the countries of the world, lets you s
 ### Installation
 
 ```bash
-git clone <https://github.com/Ismaellerakotoson/countries-app.git>
-cd <project-folder>
+git clone https://github.com/Ismaellerakotoson/countries-app.git
+cd countries-app
 npm install
 ```
 
