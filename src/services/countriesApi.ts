@@ -1,7 +1,7 @@
+
 import type { Country } from "../types/country";
 
-const API_URL = "https://api.restcountries.com/countries/v5";
-const API_KEY = import.meta.env.VITE_RESTCOUNTRIES_KEY;
+const API_URL = "/api/countries";
 const PAGE_SIZE = 100;
 
 const FIELDS = [
@@ -34,69 +34,91 @@ interface CachedCountries {
   countries: Country[];
 }
 
-// Talks to the API
+// Fetches all countries through the server-side API.
 async function fetchAllCountries(): Promise<Country[]> {
   const countries: Country[] = [];
   let offset = 0;
   let more = true;
 
   while (more) {
-    const url = `${API_URL}?limit=${PAGE_SIZE}&offset=${offset}&response_fields=${FIELDS}`;
-
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${API_KEY}` },
+    const params = new URLSearchParams({
+      limit: String(PAGE_SIZE),
+      offset: String(offset),
+      response_fields: FIELDS,
     });
+
+    const res = await fetch(`${API_URL}?${params}`);
 
     if (!res.ok) {
       throw new Error(`Erreur API : ${res.status}`);
     }
 
     const json: CountriesPage = await res.json();
+
     countries.push(...json.data.objects);
 
     more = json.data.meta.more;
     offset += PAGE_SIZE;
   }
 
-  return countries.filter((country) => country.flag.url_svg !== "");
+  return countries.filter(
+    (country) => country.flag.url_svg !== "",
+  );
 }
 
-// Reads the cached data from the browser. Returns null if it is missing,
-// expired, or invalid.
+// Reads cached countries from localStorage.
 function readCache(): Country[] | null {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
+
     if (raw === null) return null;
 
     const cached: CachedCountries = JSON.parse(raw);
 
-    if (typeof cached.savedAt !== "number" || !Array.isArray(cached.countries)) {
+    if (
+      typeof cached.savedAt !== "number" ||
+      !Array.isArray(cached.countries)
+    ) {
       return null;
     }
 
-    const isFresh = Date.now() - cached.savedAt < CACHE_DURATION;
+    const isFresh =
+      Date.now() - cached.savedAt < CACHE_DURATION;
+
     return isFresh ? cached.countries : null;
   } catch {
     return null;
   }
 }
 
-// Stores the list in the browser, along with the current date.
-function writeCache(countries: Country[]) {
+// Stores countries in localStorage.
+function writeCache(countries: Country[]): void {
   try {
-    const cached: CachedCountries = { savedAt: Date.now(), countries };
-    localStorage.setItem(CACHE_KEY, JSON.stringify(cached));
+    const cached: CachedCountries = {
+      savedAt: Date.now(),
+      countries,
+    };
+
+    localStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify(cached),
+    );
   } catch {
-    // Storage is full or blocked: continue without using the cache.
+    // Continue without caching if storage is blocked or full.
   }
 }
 
-// The only exported function: uses the cache if it is valid, otherwise calls the API.
+// Returns cached countries or fetches them from the API.
 export async function getAllCountries(): Promise<Country[]> {
   const cached = readCache();
-  if (cached !== null) return cached;
+
+  if (cached !== null) {
+    return cached;
+  }
 
   const countries = await fetchAllCountries();
+
   writeCache(countries);
+
   return countries;
 }
