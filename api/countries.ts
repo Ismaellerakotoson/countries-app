@@ -1,55 +1,92 @@
+import type { Country } from "../types/country";
 
-import type { VercelRequest, VercelResponse } from "@vercel/node";
+const API_URL = "/api/countries";
+const PAGE_SIZE = 100; // doit rester identique à PAGE_SIZE dans api/countries.ts
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse,
-) {
-  if (req.method !== "GET") {
-    return res.status(405).json({
-      error: "Method not allowed",
-    });
+const CACHE_KEY = "countries-cache-v1";
+const CACHE_DURATION = 60 * 60 * 1000; // 1 heure
+
+interface CountriesPage {
+  data: {
+    objects: Country[];
+    meta: { more: boolean };
+  };
+}
+
+interface CachedCountries {
+  savedAt: number;
+  countries: Country[];
+}
+
+// Fetches all countries page by page through the server-side API.
+async function fetchAllCountries(): Promise<Country[]> {
+  const countries: Country[] = [];
+  let offset = 0;
+  let more = true;
+
+  while (more) {
+    const res = await fetch(`${API_URL}?offset=${offset}`);
+
+    if (!res.ok) {
+      throw new Error(`Erreur API : ${res.status}`);
+    }
+
+    const json: CountriesPage = await res.json();
+
+    countries.push(...json.data.objects);
+
+    more = json.data.meta.more;
+    offset += PAGE_SIZE;
   }
 
+  return countries.filter((country) => country.flag.url_svg !== "");
+}
+
+// Reads the cached countries from localStorage.
+function readCache(): Country[] | null {
   try {
-    const url = new URL(
-      "https://api.restcountries.com/countries/v5",
-    );
+    const raw = localStorage.getItem(CACHE_KEY);
 
-    const allowedParams = [
-      "limit",
-      "offset",
-      "response_fields",
-    ];
+    if (raw === null) return null;
 
-    for (const key of allowedParams) {
-      const value = req.query[key];
+    const cached: CachedCountries = JSON.parse(raw);
 
-      if (typeof value === "string") {
-        url.searchParams.set(key, value);
-      }
+    if (
+      typeof cached.savedAt !== "number" ||
+      !Array.isArray(cached.countries)
+    ) {
+      return null;
     }
 
-    const apiKey = process.env.RESTCOUNTRIES_KEY;
+    const isFresh = Date.now() - cached.savedAt < CACHE_DURATION;
 
-    if (!apiKey) {
-      return res.status(500).json({
-        error: "API key is not configured",
-      });
-    }
-
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-      },
-    });
-
-    const data = await response.json();
-
-    return res.status(response.status).json(data);
+    return isFresh ? cached.countries : null;
   } catch {
-    return res.status(500).json({
-      error: "Failed to fetch countries",
-    });
+    return null;
   }
+}
+
+// Stores the countries in localStorage.
+function writeCache(countries: Country[]): void {
+  try {
+    const cached: CachedCountries = { savedAt: Date.now(), countries };
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cached));
+  } catch {
+    // Continue without caching if storage is blocked or full.
+  }
+}
+
+// Returns the cached countries, or fetches them if the cache is missing or old.
+export async function getAllCountries(): Promise<Country[]> {
+  const cached = readCache();
+
+  if (cached !== null) {
+    return cached;
+  }
+
+  const countries = await fetchAllCountries();
+
+  writeCache(countries);
+
+  return countries;
 }

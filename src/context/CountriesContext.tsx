@@ -30,8 +30,6 @@ export function useCountryState() {
      })
   },[])
 
-    console.log("countries dans state",countries)
-
   return { countries, loading, error };
 }
 
