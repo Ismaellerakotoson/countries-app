@@ -21,6 +21,12 @@
   }
 }
 
+body {
+  transition:
+    background-color 300ms ease,
+    color 300ms ease;
+}
+
 @keyframes letterReveal {
   from {
     opacity: 0;
@@ -31,12 +37,6 @@
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-body {
-  transition:
-    background-color 300ms ease,
-    color 300ms ease;
 }
 
 .animate-letter-reveal {
@@ -60,7 +60,7 @@ body {
   animation: selectOpen 200ms ease-out;
 }
 
-@keyframes countryCardReveal {
+@keyframes fadeUp {
   from {
     opacity: 0;
     transform: translateY(12px);
@@ -73,21 +73,23 @@ body {
 }
 
 .animate-country-card {
-  animation: countryCardReveal 600ms ease-out;
-}
-
-@keyframes borderCountriesReveal {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  animation: fadeUp 600ms ease-out;
 }
 
 .animate-border-countries {
-  animation: borderCountriesReveal 700ms ease-out;
+  animation: fadeUp 700ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body {
+    transition: none;
+  }
+
+  .animate-letter-reveal,
+  .animate-select-open,
+  .animate-country-card,
+  .animate-border-countries {
+    animation: none;
+    opacity: 1;
+  }
 }
