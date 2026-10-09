@@ -1,23 +1,7 @@
-
 import type { Country } from "../types/country";
 
 const API_URL = "/api/countries";
 const PAGE_SIZE = 100;
-
-const FIELDS = [
-  "names.common",
-  "names.native",
-  "codes.alpha_3",
-  "flag.url_svg",
-  "population",
-  "region",
-  "subregion",
-  "capitals",
-  "tlds",
-  "currencies",
-  "languages",
-  "borders",
-].join(",");
 
 const CACHE_KEY = "countries-cache-v1";
 const CACHE_DURATION = 60 * 60 * 1000;
@@ -34,20 +18,13 @@ interface CachedCountries {
   countries: Country[];
 }
 
-// Fetches all countries through the server-side API.
 async function fetchAllCountries(): Promise<Country[]> {
   const countries: Country[] = [];
   let offset = 0;
   let more = true;
 
   while (more) {
-    const params = new URLSearchParams({
-      limit: String(PAGE_SIZE),
-      offset: String(offset),
-      response_fields: FIELDS,
-    });
-
-    const res = await fetch(`${API_URL}?${params}`);
+    const res = await fetch(`${API_URL}?offset=${offset}`);
 
     if (!res.ok) {
       throw new Error(`Erreur API : ${res.status}`);
@@ -61,12 +38,9 @@ async function fetchAllCountries(): Promise<Country[]> {
     offset += PAGE_SIZE;
   }
 
-  return countries.filter(
-    (country) => country.flag.url_svg !== "",
-  );
+  return countries.filter((country) => country.flag.url_svg !== "");
 }
 
-// Reads cached countries from localStorage.
 function readCache(): Country[] | null {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
@@ -82,8 +56,7 @@ function readCache(): Country[] | null {
       return null;
     }
 
-    const isFresh =
-      Date.now() - cached.savedAt < CACHE_DURATION;
+    const isFresh = Date.now() - cached.savedAt < CACHE_DURATION;
 
     return isFresh ? cached.countries : null;
   } catch {
@@ -91,24 +64,15 @@ function readCache(): Country[] | null {
   }
 }
 
-// Stores countries in localStorage.
 function writeCache(countries: Country[]): void {
   try {
-    const cached: CachedCountries = {
-      savedAt: Date.now(),
-      countries,
-    };
-
-    localStorage.setItem(
-      CACHE_KEY,
-      JSON.stringify(cached),
-    );
+    const cached: CachedCountries = { savedAt: Date.now(), countries };
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cached));
   } catch {
-    // Continue without caching if storage is blocked or full.
+    return;
   }
 }
 
-// Returns cached countries or fetches them from the API.
 export async function getAllCountries(): Promise<Country[]> {
   const cached = readCache();
 
